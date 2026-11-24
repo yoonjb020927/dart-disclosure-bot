@@ -41,6 +41,15 @@ jobs:
 
       - run: pip install .
 
+      # KRX terms restrict passing raw data to third parties, so prices live in the Actions
+      # cache (not visible outside the repo's workflows) instead of git. A lost cache is rebuilt.
+      - name: Restore KRX price cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data/prices
+          key: krx-prices-${{ github.run_id }}
+          restore-keys: krx-prices-
+
       - name: Collect, classify, backtest, build site
         id: run
         # below the job timeout so the commit step still runs and keeps the work done so far
@@ -56,6 +65,13 @@ jobs:
           else
             python -m dartbot daily
           fi
+
+      - name: Save KRX price cache
+        if: always() && hashFiles('data/prices/**') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/prices
+          key: krx-prices-${{ github.run_id }}
 
       # always: a failed or timed-out run still keeps what it collected and classified (spec 4.8)
       - name: Commit data

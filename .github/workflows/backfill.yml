@@ -32,6 +32,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install .
+      # prices stay in the Actions cache, not git (KRX terms); see daily.yml
+      - name: Restore KRX price cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data/prices
+          key: krx-prices-${{ github.run_id }}
+          restore-keys: krx-prices-
       - name: Download filings and prices
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
@@ -40,6 +47,12 @@ jobs:
           END: ${{ inputs.end }}
         timeout-minutes: 160
         run: python -m dartbot backfill --start "$START" --end "$END"
+      - name: Save KRX price cache
+        if: always() && hashFiles('data/prices/**') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/prices
+          key: krx-prices-${{ github.run_id }}
       - name: Commit
         if: always()
         env:

@@ -72,7 +72,11 @@ def daily(root: Path, today: date, dart, krx, classifier) -> dict:
     last = storage.read_state(root).get("last_collected_date")
     start = _shift(last, 1) if last else end
     collected = collect(root, dart, start, end, move_state=True) if start <= end else {}
-    downloaded = prices.download_range(krx, _shift(min(start, end), -config.PRICE_LOOKBACK_DAYS), end, root)
+    # Prices are kept in the Actions cache, not git (KRX terms). Cover every stored filing so a
+    # lost cache is rebuilt; cached days are skipped, so this is cheap when the cache is intact.
+    oldest = min((d.rcept_dt for d in storage.load_disclosures(root)), default=min(start, end))
+    price_start = _shift(min(oldest, start, end), -config.PRICE_LOOKBACK_DAYS)
+    downloaded = prices.download_range(krx, price_start, end, root)
     classified = run_classification(root, dart, classifier, config.DAILY_REQUEST_CAP, _now)
     storage.append_ops_log(
         root, {"kind": "run", "at": _now().isoformat(), "start": start, "end": end, **classified}

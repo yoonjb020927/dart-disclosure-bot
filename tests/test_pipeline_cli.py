@@ -125,3 +125,24 @@ def test_cli_backtest_and_site_need_no_keys(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "_load_env", lambda: None)
     assert cli.main(["backtest", "--data", str(tmp_path)]) == 0
     assert cli.main(["site", "--data", str(tmp_path)]) == 0
+
+
+class RecordingKrx(EmptyKrx):
+    def __init__(self):
+        self.days = set()
+
+    def fetch(self, kind, d):
+        self.days.add(d)
+        return []
+
+
+def test_daily_refetches_prices_back_to_oldest_filing(tmp_path):
+    # prices live in the Actions cache, not git; a lost cache must be rebuilt for every stored filing
+    from tests.test_models import make_disclosure
+
+    storage.append_disclosures([make_disclosure(rcept_no="20260302000001", rcept_dt="20260302")], tmp_path)
+    storage.write_state(tmp_path, {"last_collected_date": "20261123"})
+    krx = RecordingKrx()
+    pipeline.daily(tmp_path, TODAY, ListingDart(), krx, FakeClassifier())
+    assert min(krx.days) <= "20260302"
+    assert "20260302" in krx.days

@@ -5,3 +5,5 @@ __pycache__/
 *.egg-info/
 .superpowers/
 .venv/
+# KRX raw prices: Actions cache only (KRX terms restrict third-party provision)
+data/prices/
