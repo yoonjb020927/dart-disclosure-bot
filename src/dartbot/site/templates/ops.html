@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}운영 현황 · DART 공시 분류봇{% endblock %}
+{% block content %}
+<h1>운영 현황</h1>
+<p class="lede">GitHub Actions가 매일 KST 07:00에 수집·분류·백테스트를 실행합니다.</p>
+<div class="kpis" id="kpis"></div>
+<h2>일별 수집량</h2>
+<div class="chart"><canvas id="daily" aria-label="일별 수집량"></canvas></div>
+<h2>키워드 필터에서 제외된 최근 제목</h2>
+<p class="meta">주요 공시가 여기에 보이면 키워드 규칙을 보완해야 합니다.</p>
+<div class="table-wrap"><table><tbody id="excluded"></tbody></table></div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+function kpi(label, value) { const k = el("div", "kpi"); k.append(el("div", "v", value), el("div", "l", label)); return k; }
+(async () => {
+  let ops;
+  try { ops = await getJSON("data/ops.json"); } catch (e) { return; }
+  const t = ops.totals, last = ops.last_run;
+  document.getElementById("kpis").append(
+    kpi("마지막 실행", last ? last.at.replace("T", " ").slice(0, 16) : "–"),
+    kpi("누적 수집 공시", String(t.collected)),
+    kpi("분류 대상 (정정 제외)", String(t.candidates)),
+    kpi("분류 완료", String(t.classified)),
+    kpi("남은 대기열", t.remaining === null ? "–" : String(t.remaining)),
+    kpi("마지막 실행 실패 건", String(t.failed_last_run)),
+  );
+  const ex = document.getElementById("excluded");
+  if (!ops.excluded_titles.length) { const tr = el("tr"); tr.append(el("td", "", "없음")); ex.append(tr); }
+  ops.excluded_titles.forEach(title => { const tr = el("tr"); tr.append(el("td", "", title)); ex.append(tr); });
+  if (window.Chart && ops.daily.length) {
+    themeCharts();
+    const css = getComputedStyle(document.documentElement);
+    new Chart(document.getElementById("daily"), {
+      type: "line",
+      data: {
+        labels: ops.daily.map(r => r.date),
+        datasets: [
+          { label: "상장사 공시", data: ops.daily.map(r => r.listed), borderColor: css.getPropertyValue("--neu").trim() },
+          { label: "분류 대상 후보", data: ops.daily.map(r => r.candidates), borderColor: css.getPropertyValue("--accent").trim() },
+        ],
+      },
+      options: { maintainAspectRatio: false, pointRadius: 0 },
+    });
+  }
+})();
+</script>
+{% endblock %}

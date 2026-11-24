@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}DART 공시 분류봇{% endblock %}</title>
+<style>
+:root {
+  --bg: #f7f7f5; --surface: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
+  --accent: #2f5bd3; --pos: #1f7a4d; --pos-bg: #e3f3ea; --neg: #b3261e; --neg-bg: #fbe7e5;
+  --neu: #5d5d58; --neu-bg: #ececea; --warn-bg: #fff4d6; --warn: #7a5200;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141413; --surface: #1d1d1b; --text: #ecebe6; --muted: #a3a29c; --line: #34342f;
+    --accent: #8aa8ff; --pos: #6fd19d; --pos-bg: #173326; --neg: #ff8a80; --neg-bg: #3a1b19;
+    --neu: #c4c3bd; --neu-bg: #2b2b28; --warn-bg: #3a2f12; --warn: #f3d27a;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.6 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
+header { background: var(--surface); border-bottom: 1px solid var(--line); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding: 14px 16px; }
+.brand { font-weight: 700; }
+nav { display: flex; gap: 4px; flex-wrap: wrap; }
+nav a { color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; }
+nav a[aria-current="page"] { color: var(--text); background: var(--neu-bg); font-weight: 600; }
+main { padding: 24px 0 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.lede { color: var(--muted); margin: 0 0 20px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+select, button { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--surface); color: var(--text); max-width: 100%; }
+button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+.meta { color: var(--muted); font-size: 13px; }
+.card a { color: var(--text); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.card a:hover { text-decoration: underline; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--neu-bg); color: var(--neu); }
+.badge.pos { background: var(--pos-bg); color: var(--pos); }
+.badge.neg { background: var(--neg-bg); color: var(--neg); }
+.badge.warn { background: var(--warn-bg); color: var(--warn); }
+.card ul { margin: 6px 0 0; padding-left: 18px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.kpi .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--muted); font-size: 13px; }
+.notice { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 16px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-weight: 600; font-size: 13px; }
+#excluded td { white-space: normal; }
+h2 { font-size: 17px; margin: 24px 0 10px; }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 16px; height: 300px; }
+.empty { color: var(--muted); padding: 24px 0; }
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding: 16px 16px 32px; }
+</style>
+</head>
+<body>
+<header><div class="wrap bar">
+  <span class="brand">DART 공시 분류봇</span>
+  <nav>
+    <a href="index.html" {% if page == 'index.html' %}aria-current="page"{% endif %}>오늘의 공시</a>
+    <a href="validation.html" {% if page == 'validation.html' %}aria-current="page"{% endif %}>검증 결과</a>
+    <a href="ops.html" {% if page == 'ops.html' %}aria-current="page"{% endif %}>운영 현황</a>
+  </nav>
+</div></header>
+<main class="wrap">
+{% block content %}{% endblock %}
+</main>
+<footer class="wrap">
+  이 사이트는 투자 조언이 아닙니다. LLM 분류와 백테스트 결과는 학습·연구용입니다. · 생성 {{ built_at }}
+</footer>
+<script>
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined && text !== null) n.textContent = text;
+  return n;
+}
+function pct(x, digits = 2) { return x === null || x === undefined ? "–" : (x * 100).toFixed(digits) + "%"; }
+async function getJSON(path) { const r = await fetch(path); if (!r.ok) throw new Error(path); return r.json(); }
+const SENT_CLASS = { "긍정": "pos", "부정": "neg", "중립": "" };
+function themeCharts() {
+  if (!window.Chart) return;
+  const css = getComputedStyle(document.documentElement);
+  Chart.defaults.color = css.getPropertyValue("--muted").trim();
+  Chart.defaults.borderColor = css.getPropertyValue("--line").trim();
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

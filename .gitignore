@@ -1,5 +1,5 @@
 .env
-site/
+/site/
 __pycache__/
 .coverage
 *.egg-info/

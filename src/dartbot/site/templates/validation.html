@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}검증 결과 · DART 공시 분류봇{% endblock %}
+{% block content %}
+<h1>LLM 분류는 맞았을까?</h1>
+<p class="lede">공시 후 시장조정 누적초과수익률(CAR)로 Gemini의 영향 판단을 채점합니다.
+주 기준은 CAR[0,+1]이고, ±{{ (primary_threshold * 100) | round(1) }}%를 넘으면 긍정/부정, 그 안이면 중립으로 봅니다.</p>
+<div class="controls">
+  <button id="btn-live" aria-pressed="true">live (운영 후 분류)</button>
+  <button id="btn-backfill" aria-pressed="false">backfill (과거 소급)</button>
+  <label for="version">분류기</label><select id="version"></select>
+</div>
+<div class="notice" id="backfill-notice" hidden>
+  backfill 결과에는 미래 정보가 섞였을 수 있습니다. 모델이 학습 과정에서 그 시기의 뉴스와 주가 흐름을 봤을 수 있기 때문입니다.
+  회사명·종목코드·날짜를 가려서 입력했지만 완전히 막지는 못합니다. 깨끗한 검증은 live 결과입니다.
+</div>
+<div id="body"></div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const SENTS = ["긍정", "부정", "중립"];
+const WINDOWS = ["1", "5", "20"];
+let summary = { groups: [] }, origin = "live", chart = null;
+
+function table(headers, rows) {
+  const wrap = el("div", "table-wrap"), t = el("table"), thead = el("thead"), tr = el("tr");
+  headers.forEach(h => tr.append(el("th", "", h)));
+  thead.append(tr); t.append(thead);
+  const tb = el("tbody");
+  rows.forEach(r => { const row = el("tr"); r.forEach(c => { const td = el("td"); c instanceof Node ? td.append(c) : (td.textContent = c); row.append(td); }); tb.append(row); });
+  t.append(tb); wrap.append(t); return wrap;
+}
+function kpi(label, value) { const k = el("div", "kpi"); k.append(el("div", "v", value), el("div", "l", label)); return k; }
+function sampleCell(n, insufficient) {
+  const s = el("span", "", String(n));
+  if (insufficient) { const b = el("span", "badge warn", "표본 부족"); b.style.marginLeft = "6px"; const w = el("span"); w.append(s, b); return w; }
+  return s;
+}
+
+function groupsFor(o) { return summary.groups.filter(g => g.origin === o); }
+
+function fillVersions() {
+  const sel = document.getElementById("version");
+  const gs = groupsFor(origin).slice().sort((a, b) => b.n_ok - a.n_ok || b.classifier_version.localeCompare(a.classifier_version));
+  sel.replaceChildren(...gs.map(g => { const o = el("option", "", g.classifier_version + " (" + g.n_ok + "건)"); o.value = g.classifier_version; return o; }));
+  sel.onchange = render;
+}
+
+function render() {
+  document.getElementById("btn-live").setAttribute("aria-pressed", origin === "live");
+  document.getElementById("btn-backfill").setAttribute("aria-pressed", origin === "backfill");
+  document.getElementById("backfill-notice").hidden = origin !== "backfill";
+  const body = document.getElementById("body");
+  const g = groupsFor(origin).find(x => x.classifier_version === document.getElementById("version").value);
+  if (chart) { chart.destroy(); chart = null; }
+  if (!g) { body.replaceChildren(el("p", "empty", "아직 집계할 결과가 없습니다. 공시 후 주가 반응 기간이 지나면 채워집니다.")); return; }
+
+  const kpis = el("div", "kpis");
+  kpis.append(
+    kpi("채점된 공시", String(g.n_ok)),
+    kpi("방향 적중률 (중립 예측 제외)", pct(g.directional_hit_rate, 1)),
+    kpi("적중률 (임계값 ±1%)", pct(g.hit_rate_by_threshold["0.01"], 1)),
+    kpi("주가 반응 대기 · 시세 없음", g.n_pending + " · " + g.n_no_price),
+  );
+
+  const chartBox = el("div", "chart"), canvas = el("canvas");
+  canvas.setAttribute("aria-label", "영향 판단별 평균 초과수익률");
+  chartBox.append(canvas);
+
+  const sentRows = SENTS.map(s => [s, ...WINDOWS.map(w => pct(g.by_sentiment[s][w].mean)),
+    sampleCell(g.by_sentiment[s]["1"].n, g.by_sentiment[s]["1"].insufficient),
+    g.by_sentiment[s]["1"].p_value === null ? "–" : g.by_sentiment[s]["1"].p_value.toFixed(3)]);
+  const typeRows = Object.entries(g.by_type).sort((a, b) => b[1].n - a[1].n)
+    .map(([t, v]) => [t, sampleCell(v.n, v.insufficient), pct(v.mean_car1), pct(v.hit_rate, 1)]);
+  const confRows = SENTS.map(p => ["예측 " + p, ...SENTS.map(a => String(g.confusion[p][a]))]);
+  const thrRows = Object.entries(g.hit_rate_by_threshold).map(([t, v]) => ["±" + (Number(t) * 100).toFixed(1) + "%", pct(v, 1)]);
+  const confBucketRows = Object.entries(g.hit_rate_by_confidence).map(([b, v]) => [b, pct(v, 1)]);
+
+  body.replaceChildren(
+    kpis,
+    el("h2", "", "영향 판단별 평균 초과수익률"), chartBox,
+    table(["예측 영향", "CAR[0,+1]", "CAR[0,+5]", "CAR[0,+20]", "표본", "p값 [0,+1]"], sentRows),
+    el("h2", "", "공시 유형별"),
+    typeRows.length ? table(["유형", "표본", "평균 CAR[0,+1]", "적중률"], typeRows) : el("p", "empty", "없음"),
+    el("h2", "", "혼동행렬 (실제 = CAR[0,+1] 기준)"),
+    table(["", "실제 긍정", "실제 부정", "실제 중립"], confRows),
+    el("h2", "", "임계값 민감도"), table(["임계값", "적중률"], thrRows),
+    el("h2", "", "확신도 구간별 적중률"), table(["확신도", "적중률"], confBucketRows),
+  );
+
+  if (window.Chart) {
+    themeCharts();
+    const css = getComputedStyle(document.documentElement);
+    const colors = [css.getPropertyValue("--pos"), css.getPropertyValue("--neg"), css.getPropertyValue("--neu")];
+    chart = new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: ["[0,+1]", "[0,+5]", "[0,+20]"],
+        datasets: SENTS.map((s, i) => ({ label: "예측 " + s, backgroundColor: colors[i].trim(),
+          data: WINDOWS.map(w => g.by_sentiment[s][w].mean === null ? null : g.by_sentiment[s][w].mean * 100) })),
+      },
+      options: { maintainAspectRatio: false, scales: { y: { title: { display: true, text: "평균 CAR (%)" } } } },
+    });
+  }
+}
+
+(async () => {
+  try { summary = await getJSON("data/summary.json"); } catch (e) { summary = { groups: [] }; }
+  document.getElementById("btn-live").onclick = () => { origin = "live"; fillVersions(); render(); };
+  document.getElementById("btn-backfill").onclick = () => { origin = "backfill"; fillVersions(); render(); };
+  if (!groupsFor("live").length && groupsFor("backfill").length) origin = "backfill";
+  fillVersions(); render();
+})();
+</script>
+{% endblock %}

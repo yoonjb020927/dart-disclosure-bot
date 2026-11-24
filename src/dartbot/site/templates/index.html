@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}오늘의 공시 · DART 공시 분류봇{% endblock %}
+{% block content %}
+<h1>오늘의 공시</h1>
+<p class="lede">전날 접수된 유가증권·코스닥 주요 공시를 Gemini가 요약하고 유형·영향으로 분류한 결과입니다.</p>
+<div class="controls">
+  <label for="day">날짜</label><select id="day"></select>
+  <label for="type">유형</label><select id="type"><option value="">전체</option></select>
+  <span class="meta" id="count"></span>
+</div>
+<div id="list"></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const daySel = document.getElementById("day");
+const typeSel = document.getElementById("type");
+const list = document.getElementById("list");
+let rows = [];
+
+function fmtDate(d) { return d.slice(0, 4) + "-" + d.slice(4, 6) + "-" + d.slice(6); }
+
+function card(r) {
+  const c = el("article", "card");
+  c.append(el("div", "meta", r.corp_name + " · " + r.market));
+  const a = el("a", "", r.title);
+  a.href = r.url; a.target = "_blank"; a.rel = "noopener";
+  c.append(a);
+  const b = el("div", "badges");
+  b.append(el("span", "badge", r.type));
+  if (r.sentiment) b.append(el("span", "badge " + (SENT_CLASS[r.sentiment] || ""), "영향 " + r.sentiment));
+  else if (!r.is_correction) b.append(el("span", "badge", "분류 대기"));
+  if (r.is_correction) b.append(el("span", "badge warn", "정정공시"));
+  if (r.confidence !== null) b.append(el("span", "badge", "확신도 " + Math.round(r.confidence * 100) + "%"));
+  if (r.car1 !== null) b.append(el("span", "badge", "초과수익률[0,+1] " + pct(r.car1)));
+  c.append(b);
+  if (r.summary.length) {
+    const ul = el("ul");
+    r.summary.forEach(s => ul.append(el("li", "", s)));
+    c.append(ul);
+  }
+  return c;
+}
+
+function render() {
+  const t = typeSel.value;
+  const shown = rows.filter(r => !t || r.type === t);
+  list.replaceChildren(...(shown.length ? shown.map(card) : [el("p", "empty", "이 날짜에는 해당 공시가 없습니다.")]));
+  document.getElementById("count").textContent = shown.length + "건";
+}
+
+async function loadDay(d) {
+  rows = await getJSON("data/days/" + d + ".json");
+  const types = [...new Set(rows.map(r => r.type))].sort();
+  typeSel.replaceChildren(el("option", "", "전체"), ...types.map(t => { const o = el("option", "", t); o.value = t; return o; }));
+  typeSel.firstChild.value = "";
+  render();
+}
+
+(async () => {
+  try {
+    const days = await getJSON("data/days/index.json");
+    if (!days.length) { list.replaceChildren(el("p", "empty", "아직 수집된 공시가 없습니다.")); return; }
+    days.forEach(d => { const o = el("option", "", fmtDate(d)); o.value = d; daySel.append(o); });
+    daySel.onchange = () => loadDay(daySel.value);
+    typeSel.onchange = render;
+    await loadDay(days[0]);
+  } catch (e) {
+    list.replaceChildren(el("p", "empty", "데이터를 불러오지 못했습니다."));
+  }
+})();
+</script>
+{% endblock %}
