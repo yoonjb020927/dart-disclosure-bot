@@ -162,3 +162,18 @@ def test_stops_after_consecutive_failed_batches(tmp_path, monkeypatch):
     clf = FakeClassifier(fail_ids={d.rcept_no for d in items})
     cr.run_classification(tmp_path, FakeDart(), clf, max_requests=6, now=NOW)
     assert len(clf.calls) == config.MAX_FAILED_BATCHES_IN_A_ROW
+
+
+def test_stops_when_time_budget_is_spent(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "BATCH_SIZE", 10)
+    monkeypatch.setattr(config, "CLASSIFY_TIME_BUDGET_SEC", 100)
+    items = [disc(n) for n in range(50)]
+    storage.append_disclosures(items, tmp_path)
+    clf = FakeClassifier()
+    ticks = iter([0, 0, 60, 120, 180, 240, 300])
+    out = cr.run_classification(
+        tmp_path, FakeDart(), clf, max_requests=5, now=NOW, clock=lambda: next(ticks)
+    )
+    assert len(clf.calls) == 2
+    assert out["classified"] == 20
+    assert out["stopped_by_time"] is True

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -60,14 +61,21 @@ def run_classification(
     classifier: Classifier,
     max_requests: int,
     now: Callable[[], datetime],
+    clock: Callable[[], float] = time.monotonic,
 ) -> dict:
     queue = pending_queue(
         storage.load_disclosures(root), storage.load_classifications(root), classifier.version
     )
     classified = failed = failed_in_a_row = 0
-    stopped = False
+    stopped = out_of_time = False
     size = config.BATCH_SIZE
+    started = clock()
     for start in range(0, min(len(queue), max_requests * size), size):
+        # leave time for backtest, site build and the commit before the workflow step timeout
+        if clock() - started >= config.CLASSIFY_TIME_BUDGET_SEC:
+            log.warning("time budget spent, stopping for today")
+            out_of_time = True
+            break
         batch = queue[start : start + size]
         try:
             prepared = {}
@@ -111,4 +119,5 @@ def run_classification(
         "failed": failed,
         "remaining": len(queue) - classified,
         "stopped_by_quota": stopped,
+        "stopped_by_time": out_of_time,
     }
