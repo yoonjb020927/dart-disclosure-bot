@@ -144,7 +144,24 @@ def test_version_string():
 
 
 def test_provider_error_on_batch_is_not_retried_singly():
-    clf, client = make([RuntimeError("503 UNAVAILABLE")])
+    clf, client = make([RuntimeError("500 internal")])
     ok, failed = clf.classify_batch([item(1), item(2), item(3)])
     assert ok == [] and failed == ["r1", "r2", "r3"]
     assert len(client.models.prompts) == 1
+
+
+def test_overloaded_503_retried_with_backoff_then_succeeds():
+    clock = FakeClock()
+    clf, client = make([RuntimeError("503 UNAVAILABLE"), RuntimeError("503 UNAVAILABLE"), [good(1)]], clock)
+    ok, failed = clf.classify_batch([item(1)])
+    assert [o.rcept_no for o in ok] == ["r1"] and failed == []
+    assert len(client.models.prompts) == 3
+    assert sum(clock.slept) >= config.GEMINI_BACKOFF_SEC * 3  # 20 + 40
+
+
+def test_overloaded_503_gives_up_after_retries():
+    replies = [RuntimeError("503 UNAVAILABLE")] * (config.GEMINI_TRANSIENT_RETRIES + 1)
+    clf, client = make(replies)
+    ok, failed = clf.classify_batch([item(1), item(2)])
+    assert ok == [] and failed == ["r1", "r2"]
+    assert len(client.models.prompts) == config.GEMINI_TRANSIENT_RETRIES + 1

@@ -14,6 +14,10 @@ from .prompt import PROMPT_VERSION, RESPONSE_SCHEMA, build_prompt
 log = logging.getLogger(__name__)
 
 
+def _is_overloaded(exc: Exception) -> bool:
+    return getattr(exc, "code", None) == 503 or "UNAVAILABLE" in str(exc)
+
+
 def _is_quota_error(exc: Exception) -> bool:
     return getattr(exc, "code", None) == 429 or "RESOURCE_EXHAUSTED" in str(exc)
 
@@ -79,22 +83,30 @@ class GeminiClassifier:
     def _call(self, items: list[ClassifierInput]) -> tuple[dict[str, ClassifierOutput], list[str], bool]:
         """(valid results, failed rcept_nos, whether the provider call itself errored)."""
         wanted = [i.rcept_no for i in items]
-        self._wait_for_rate_limit()
-        try:
-            resp = self._client.models.generate_content(
-                model=self._model,
-                contents=build_prompt(items),
-                config={
-                    "response_mime_type": "application/json",
-                    "response_schema": RESPONSE_SCHEMA,
-                    "temperature": 0,
-                },
-            )
-        except Exception as exc:  # provider errors vary; quota is the only one that stops the run
-            if _is_quota_error(exc):
-                raise QuotaExceeded(str(exc)) from exc
-            log.warning("Gemini call failed for %d item(s): %s", len(items), exc)
-            return {}, wanted, True
+        for attempt in range(config.GEMINI_TRANSIENT_RETRIES + 1):
+            self._wait_for_rate_limit()
+            try:
+                resp = self._client.models.generate_content(
+                    model=self._model,
+                    contents=build_prompt(items),
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": RESPONSE_SCHEMA,
+                        "temperature": 0,
+                    },
+                )
+                break
+            except Exception as exc:  # provider errors vary; quota is the only one that stops the run
+                if _is_quota_error(exc):
+                    raise QuotaExceeded(str(exc)) from exc
+                if _is_overloaded(exc) and attempt < config.GEMINI_TRANSIENT_RETRIES:
+                    wait = config.GEMINI_BACKOFF_SEC * 2**attempt
+                    log.info("Gemini overloaded, retrying in %ss (%d/%d)", wait, attempt + 1,
+                             config.GEMINI_TRANSIENT_RETRIES)
+                    self._sleep(wait)
+                    continue
+                log.warning("Gemini call failed for %d item(s): %s", len(items), exc)
+                return {}, wanted, True
         try:
             raw_items = json.loads(resp.text)
         except (TypeError, ValueError):

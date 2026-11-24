@@ -80,7 +80,9 @@ PRICE_LOOKBACK_DAYS = 40
 GEMINI_MODEL = "gemini-3.5-flash"  # probe 2026-11-24: 2.5-flash closed to new users, 3.7/3.8 overloaded (503)
 BATCH_SIZE = 10
 REQUESTS_PER_MINUTE = 10
-MAX_FAILED_BATCHES_IN_A_ROW = 3  # provider outage: stop instead of burning the day
+MAX_FAILED_BATCHES_IN_A_ROW = 3
+GEMINI_TRANSIENT_RETRIES = 3  # 503 overloaded: retry the same call after 20s, 40s, 80s
+GEMINI_BACKOFF_SEC = 20  # provider outage: stop instead of burning the day
 DAILY_REQUEST_CAP = 200
 BODY_MAX_CHARS = 4000
 
