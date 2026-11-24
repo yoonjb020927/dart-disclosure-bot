@@ -49,6 +49,23 @@ TITLE_RULES: tuple[tuple[str, str], ...] = (
     ("매출액또는손익구조", "영업(잠정)실적"),
 )
 
+# --- KRX Open API (same key/host as krx-daily-report) -------------------------------
+# Endpoint and field names: confirm with `python -m dartbot probe krx` (probe).
+KRX_BASE_URL = "https://data-dbg.krx.co.kr/svc/apis"
+KRX_AUTH_HEADER = "AUTH_KEY"
+KRX_ROWS_KEY = "OutBlock_1"
+KRX_ENDPOINTS = {
+    "stk": "sto/stk_bydd_trd",  # 유가증권 일별매매정보
+    "ksq": "sto/ksq_bydd_trd",  # 코스닥 일별매매정보
+    "kospi_idx": "idx/kospi_dd_trd",  # KOSPI 시리즈 일별시세
+    "kosdaq_idx": "idx/kosdaq_dd_trd",  # KOSDAQ 시리즈 일별시세
+}
+KRX_STOCK_FIELDS = {"code": "ISU_CD", "name": "ISU_NM", "close": "TDD_CLSPRC", "fluc": "FLUC_RT"}
+KRX_INDEX_FIELDS = {"name": "IDX_NM", "close": "CLSPRC_IDX", "fluc": "FLUC_RT"}
+# kind -> (index name in the response, name we store)
+KRX_INDEX_NAMES = {"kospi_idx": ("코스피", "KOSPI"), "kosdaq_idx": ("코스닥", "KOSDAQ")}
+MARKET_INDEX = {"Y": "KOSPI", "K": "KOSDAQ"}
+
 # --- 백테스트 -------------------------------------------------------------------
 CAR_WINDOWS: tuple[int, ...] = (1, 5, 20)
 PRIMARY_WINDOW = 1
