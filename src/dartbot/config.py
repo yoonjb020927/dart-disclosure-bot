@@ -77,7 +77,7 @@ PRICE_LOOKBACK_DAYS = 40
 # --- LLM -------------------------------------------------------------------------
 # Pinned model name (no -latest alias). Confirm the free-tier model with
 # `python -m dartbot probe gemini` and adjust limits to <=80% of the real quota.
-GEMINI_MODEL = "gemini-3.5-flash"  # probe 2026-11-24: 2.5-flash closed to new users, 3.7/3.8 overloaded (503)
+GEMINI_MODEL = "gemini-3.5-flash-lite"  # flash free tier = 20 req/day/model; lite has its own quota
 BATCH_SIZE = 10
 REQUESTS_PER_MINUTE = 10
 MAX_FAILED_BATCHES_IN_A_ROW = 3
