@@ -28,7 +28,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      # a run queued behind another must start from the data that run pushed, not the trigger SHA
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:
@@ -40,6 +43,8 @@ jobs:
 
       - name: Collect, classify, backtest, build site
         id: run
+        # below the job timeout so the commit step still runs and keeps the work done so far
+        timeout-minutes: 100
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -52,10 +57,11 @@ jobs:
             python -m dartbot daily
           fi
 
+      # always: a failed or timed-out run still keeps what it collected and classified (spec 4.8)
       - name: Commit data
-        if: steps.run.outputs.status == 'ok'
+        if: always()
         env:
-          RUN_DATE: ${{ steps.run.outputs.date }}
+          RUN_DATE: ${{ steps.run.outputs.date || 'partial' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -75,7 +81,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Open an Issue when something breaks
-        if: failure()
+        if: failure() || cancelled()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

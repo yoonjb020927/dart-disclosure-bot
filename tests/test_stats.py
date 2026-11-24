@@ -93,3 +93,8 @@ def test_confidence_buckets_edges():
     evs = [ev(1, 0.02), ev(2, -0.02)]
     b = group(summarize(cls, evs, NOW))["hit_rate_by_confidence"]
     assert b["0.5-0.7"] == 1.0 and b["0.9-1.0"] == 0.0 and b["0.0-0.5"] is None
+
+
+def test_other_type_excluded_per_classification():
+    s = summarize([cl(1, version="v1", type_="기타"), cl(1, version="v2")], [ev(1, 0.02)], NOW)
+    assert {(g["origin"], g["classifier_version"]) for g in s["groups"]} == {("live", "v2")}

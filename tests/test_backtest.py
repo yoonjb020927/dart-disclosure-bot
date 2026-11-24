@@ -128,3 +128,18 @@ def test_run_backtest_skips_corrections_other_and_unclassified(tmp_path):
     saved = (tmp_path / "results" / "events.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(saved) == 1
     assert EventResult.from_dict(json.loads(saved[0])).car[1] == pytest.approx(0.02)
+
+
+def test_run_backtest_keeps_event_when_any_version_is_not_other(tmp_path):
+    write_prices(tmp_path, {"005930": [0.01] * 25}, [0.0] * 25)
+    d = make_disclosure(rcept_no=DAYS[3] + "000001", rcept_dt=DAYS[3])
+    storage.append_disclosures([d], tmp_path)
+    storage.append_classifications(
+        [
+            make_classification(rcept_no=d.rcept_no, classifier_version="v1", classified_at="2026-11-01T00:00:00"),
+            make_classification(rcept_no=d.rcept_no, classifier_version="v2", type="기타",
+                                classified_at="2026-11-02T00:00:00"),
+        ],
+        tmp_path,
+    )
+    assert [e.rcept_no for e in backtest.run_backtest(tmp_path)] == [d.rcept_no]

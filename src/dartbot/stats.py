@@ -89,6 +89,8 @@ def summarize(classifications: list[Classification], events: list[EventResult], 
     by_id = {e.rcept_no: e for e in events}
     groups: dict[tuple[str, str], list[tuple[Classification, EventResult | None]]] = {}
     for c in classifications:
+        if c.type == "기타":  # not an event type; judged per classification, not per latest
+            continue
         groups.setdefault((c.origin, c.classifier_version), []).append((c, by_id.get(c.rcept_no)))
     return {
         "generated_at": now,

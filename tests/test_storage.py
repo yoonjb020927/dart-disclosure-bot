@@ -61,3 +61,15 @@ def test_ops_log_roundtrip(tmp_path):
     storage.append_ops_log(tmp_path, {"date": "20261120", "fetched": 3})
     storage.append_ops_log(tmp_path, {"date": "20261121", "fetched": 4})
     assert [r["fetched"] for r in storage.load_ops_log(tmp_path)] == [3, 4]
+
+
+def test_load_dedupes_rows_duplicated_by_a_merge(tmp_path):
+    d = make_disclosure()
+    c = make_classification(rcept_no=d.rcept_no)
+    storage.append_disclosures([d], tmp_path)
+    storage.append_classifications([c], tmp_path)
+    for kind in ("disclosures", "classifications"):
+        path = next((tmp_path / kind).glob("*/*.jsonl"))
+        path.write_text(path.read_text(encoding="utf-8") * 2, encoding="utf-8")
+    assert len(storage.load_disclosures(tmp_path)) == 1
+    assert len(storage.load_classifications(tmp_path)) == 1

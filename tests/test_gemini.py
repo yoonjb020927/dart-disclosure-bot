@@ -141,3 +141,10 @@ def test_rate_limit_sleeps_between_calls():
 def test_version_string():
     clf, _ = make([])
     assert clf.version == f"gm+{PROMPT_VERSION}"
+
+
+def test_provider_error_on_batch_is_not_retried_singly():
+    clf, client = make([RuntimeError("503 UNAVAILABLE")])
+    ok, failed = clf.classify_batch([item(1), item(2), item(3)])
+    assert ok == [] and failed == ["r1", "r2", "r3"]
+    assert len(client.models.prompts) == 1

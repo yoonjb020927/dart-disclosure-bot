@@ -24,8 +24,16 @@ _TAG = re.compile(r"<[^>]+>")
 _SPACE = re.compile(r"\s+")
 
 
+NO_DOCUMENT_STATUSES = ("013", "014")  # the filing has no document: title only is the best we can do
+STATUS_LIMIT = "020"  # daily request limit reached
+
+
 class DartApiError(RuntimeError):
-    """OpenDART returned an error status or an unreadable payload."""
+    """OpenDART returned an error status or an unreadable payload. status is None for transport errors."""
+
+    def __init__(self, message: str, status: str | None = None) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 class DartClient:
@@ -56,7 +64,9 @@ class DartClient:
             if status == STATUS_NO_DATA:
                 return []
             if status != STATUS_OK:
-                raise DartApiError(f"list.json {date} {corp_cls}/{pblntf_ty}: {status} {payload.get('message')}")
+                raise DartApiError(
+                    f"list.json {date} {corp_cls}/{pblntf_ty}: {status} {payload.get('message')}", status=status
+                )
             rows.extend(payload.get("list", []))
             total = int(payload.get("total_page", 1))
             page += 1
@@ -70,7 +80,10 @@ class DartClient:
                 payload = json.loads(content.decode("utf-8"))
             except (UnicodeDecodeError, ValueError):
                 raise DartApiError(f"document.xml {rcept_no}: not a zip") from None
-            raise DartApiError(f"document.xml {rcept_no}: {payload.get('status')} {payload.get('message')}")
+            raise DartApiError(
+                f"document.xml {rcept_no}: {payload.get('status')} {payload.get('message')}",
+                status=payload.get("status"),
+            )
         parts = []
         with zipfile.ZipFile(io.BytesIO(content)) as zf:
             for name in zf.namelist():

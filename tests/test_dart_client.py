@@ -111,3 +111,10 @@ def test_network_error_retries_then_raises(monkeypatch):
     with pytest.raises(DartApiError):
         DartClient(api_key="k", session=Boom()).list_disclosures("20261120", "Y", "B")
     assert Boom.calls == 3
+
+
+def test_document_error_carries_status():
+    session = FakeSession([FakeResponse({"status": "014", "message": "파일이 존재하지 않습니다."})])
+    with pytest.raises(DartApiError) as info:
+        DartClient(api_key="k", session=session).document_text("x", max_chars=100)
+    assert info.value.status == "014"

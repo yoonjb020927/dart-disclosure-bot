@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from . import config, storage
-from .dart_client import DartApiError, DartClient
+from .dart_client import NO_DOCUMENT_STATUSES, STATUS_LIMIT, DartApiError, DartClient
 from .llm.base import Classifier, ClassifierInput, QuotaExceeded
 from .masking import mask_text
 from .models import Classification, Disclosure
@@ -30,11 +30,21 @@ def pending_queue(
     return sorted(todo, key=lambda d: (origin_of(d) == "live", d.rcept_dt, d.rcept_no), reverse=True)
 
 
-def _prepare(d: Disclosure, dart: DartClient) -> tuple[ClassifierInput, str]:
+class _DartLimit(RuntimeError):
+    pass
+
+
+def _prepare(d: Disclosure, dart: DartClient) -> tuple[ClassifierInput, str] | None:
+    """Masked input and its mode, or None when the body failed transiently (item stays queued)."""
     try:
         body, mode = dart.document_text(d.rcept_no, config.BODY_MAX_CHARS), "body"
     except DartApiError as exc:
-        log.warning("body unavailable for %s, using title only: %s", d.rcept_no, exc)
+        if exc.status == STATUS_LIMIT:
+            raise _DartLimit(str(exc)) from exc
+        if exc.status not in NO_DOCUMENT_STATUSES:
+            log.warning("body fetch failed for %s, keeping it queued: %s", d.rcept_no, exc)
+            return None
+        log.warning("no document for %s, using title only: %s", d.rcept_no, exc)
         body, mode = "", "title_only"
     masked = ClassifierInput(
         rcept_no=d.rcept_no,
@@ -54,16 +64,24 @@ def run_classification(
     queue = pending_queue(
         storage.load_disclosures(root), storage.load_classifications(root), classifier.version
     )
-    classified = failed = 0
+    classified = failed = failed_in_a_row = 0
     stopped = False
     size = config.BATCH_SIZE
     for start in range(0, min(len(queue), max_requests * size), size):
         batch = queue[start : start + size]
-        prepared = {d.rcept_no: (d, *_prepare(d, dart)) for d in batch}
         try:
+            prepared = {}
+            for d in batch:
+                ready = _prepare(d, dart)
+                if ready is None:
+                    failed += 1
+                else:
+                    prepared[d.rcept_no] = (d, *ready)
+            if not prepared:
+                continue
             outputs, failed_ids = classifier.classify_batch([p[1] for p in prepared.values()])
-        except QuotaExceeded as exc:
-            log.warning("quota reached, stopping for today: %s", exc)
+        except (QuotaExceeded, _DartLimit) as exc:
+            log.warning("API limit reached, stopping for today: %s", exc)
             stopped = True
             break
         stamp = now().isoformat()
@@ -84,6 +102,10 @@ def run_classification(
         ]
         classified += storage.append_classifications(records, root)
         failed += len(failed_ids)
+        failed_in_a_row = 0 if outputs else failed_in_a_row + 1
+        if failed_in_a_row >= config.MAX_FAILED_BATCHES_IN_A_ROW:
+            log.warning("%d batches in a row failed, stopping for today", failed_in_a_row)
+            break
     return {
         "classified": classified,
         "failed": failed,

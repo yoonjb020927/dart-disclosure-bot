@@ -26,7 +26,7 @@ class FakeDart:
 
     def document_text(self, rcept_no, max_chars):
         if rcept_no in self.fail:
-            raise DartApiError("014")
+            raise DartApiError("014", status="014")
         return "삼성전자는 2026-11-20 자기주식 취득을 결정했다."
 
 
@@ -129,3 +129,36 @@ def test_saved_record_fields(tmp_path):
     c = storage.load_classifications(tmp_path)[0]
     assert c.origin == "live" and c.classifier_version == "fake+p1" and c.input_mode == "body"
     assert c.classified_at.startswith("2026-11-24T07:00")
+
+
+class FlakyDart(FakeDart):
+    def __init__(self, status):
+        super().__init__()
+        self.status = status
+
+    def document_text(self, rcept_no, max_chars):
+        raise DartApiError(f"{self.status} error", status=self.status)
+
+
+def test_transient_dart_error_leaves_item_queued(tmp_path):
+    storage.append_disclosures([disc(1)], tmp_path)
+    clf = FakeClassifier()
+    result = cr.run_classification(tmp_path, FlakyDart(None), clf, max_requests=5, now=NOW)
+    assert storage.load_classifications(tmp_path) == []
+    assert result["failed"] == 1 and result["remaining"] == 1
+    assert clf.calls == []
+
+
+def test_dart_rate_limit_stops_the_run(tmp_path):
+    storage.append_disclosures([disc(n) for n in range(3)], tmp_path)
+    result = cr.run_classification(tmp_path, FlakyDart("020"), FakeClassifier(), max_requests=5, now=NOW)
+    assert result["stopped_by_quota"] is True and result["classified"] == 0
+
+
+def test_stops_after_consecutive_failed_batches(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "BATCH_SIZE", 10)
+    items = [disc(n) for n in range(60)]
+    storage.append_disclosures(items, tmp_path)
+    clf = FakeClassifier(fail_ids={d.rcept_no for d in items})
+    cr.run_classification(tmp_path, FakeDart(), clf, max_requests=6, now=NOW)
+    assert len(clf.calls) == config.MAX_FAILED_BATCHES_IN_A_ROW

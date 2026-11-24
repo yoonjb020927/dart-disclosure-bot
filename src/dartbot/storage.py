@@ -58,9 +58,12 @@ def append_disclosures(items: list[Disclosure], root: Path) -> int:
 
 
 def load_disclosures(root: Path, start: str | None = None, end: str | None = None) -> list[Disclosure]:
-    out = []
+    out, seen = [], set()
     for row in _iter_jsonl(_all_files(root, DISCLOSURES)):
         dt = row["rcept_dt"]
+        if row["rcept_no"] in seen:  # a git merge can duplicate lines
+            continue
+        seen.add(row["rcept_no"])
         if (start is None or dt >= start) and (end is None or dt <= end):
             out.append(Disclosure.from_dict(row))
     return out
@@ -84,7 +87,13 @@ def append_classifications(items: list[Classification], root: Path) -> int:
 
 
 def load_classifications(root: Path) -> list[Classification]:
-    return [Classification.from_dict(row) for row in _iter_jsonl(_all_files(root, CLASSIFICATIONS))]
+    out, seen = [], set()
+    for row in _iter_jsonl(_all_files(root, CLASSIFICATIONS)):
+        key = (row["rcept_no"], row["classifier_version"])
+        if key not in seen:  # a git merge can duplicate lines
+            seen.add(key)
+            out.append(Classification.from_dict(row))
+    return out
 
 
 def read_state(root: Path) -> dict:

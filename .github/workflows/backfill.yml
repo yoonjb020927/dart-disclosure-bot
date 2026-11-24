@@ -26,6 +26,8 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -36,8 +38,10 @@ jobs:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           START: ${{ inputs.start }}
           END: ${{ inputs.end }}
+        timeout-minutes: 160
         run: python -m dartbot backfill --start "$START" --end "$END"
       - name: Commit
+        if: always()
         env:
           START: ${{ inputs.start }}
           END: ${{ inputs.end }}

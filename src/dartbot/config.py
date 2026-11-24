@@ -60,7 +60,7 @@ KRX_ENDPOINTS = {
     "kospi_idx": "idx/kospi_dd_trd",  # KOSPI 시리즈 일별시세
     "kosdaq_idx": "idx/kosdaq_dd_trd",  # KOSDAQ 시리즈 일별시세
 }
-KRX_STOCK_FIELDS = {"code": "ISU_CD", "name": "ISU_NM", "close": "TDD_CLSPRC", "fluc": "FLUC_RT"}
+KRX_STOCK_FIELDS = {"code": "ISU_CD", "name": "ISU_NM", "close": "TDD_CLSPRC", "fluc": "FLUC_RT", "volume": "ACC_TRDVOL"}
 KRX_INDEX_FIELDS = {"name": "IDX_NM", "close": "CLSPRC_IDX", "fluc": "FLUC_RT"}
 # kind -> (index name in the response, name we store)
 KRX_INDEX_NAMES = {"kospi_idx": ("코스피", "KOSPI"), "kosdaq_idx": ("코스닥", "KOSDAQ")}
@@ -77,9 +77,10 @@ PRICE_LOOKBACK_DAYS = 40
 # --- LLM -------------------------------------------------------------------------
 # Pinned model name (no -latest alias). Confirm the free-tier model with
 # `python -m dartbot probe gemini` and adjust limits to <=80% of the real quota.
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.5-flash"  # probe 2026-11-24: 2.5-flash closed to new users, 3.7/3.8 overloaded (503)
 BATCH_SIZE = 10
 REQUESTS_PER_MINUTE = 10
+MAX_FAILED_BATCHES_IN_A_ROW = 3  # provider outage: stop instead of burning the day
 DAILY_REQUEST_CAP = 200
 BODY_MAX_CHARS = 4000
 

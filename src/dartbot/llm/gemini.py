@@ -65,18 +65,19 @@ class GeminiClassifier:
         self.version = f"{model}+{PROMPT_VERSION}"
 
     def classify_batch(self, items: list[ClassifierInput]) -> tuple[list[ClassifierOutput], list[str]]:
-        results, failed = self._call(items)
-        if len(items) > 1 and failed:
+        results, failed, errored = self._call(items)
+        if len(items) > 1 and failed and not errored:  # provider errors (503...) would fail singly too
             by_id = {i.rcept_no: i for i in items}
             still_failed = []
             for rcept_no in failed:
-                single_ok, single_failed = self._call([by_id[rcept_no]])
+                single_ok, single_failed, _ = self._call([by_id[rcept_no]])
                 results.update(single_ok)
                 still_failed.extend(single_failed)
             failed = still_failed
         return list(results.values()), failed
 
-    def _call(self, items: list[ClassifierInput]) -> tuple[dict[str, ClassifierOutput], list[str]]:
+    def _call(self, items: list[ClassifierInput]) -> tuple[dict[str, ClassifierOutput], list[str], bool]:
+        """(valid results, failed rcept_nos, whether the provider call itself errored)."""
         wanted = [i.rcept_no for i in items]
         self._wait_for_rate_limit()
         try:
@@ -89,15 +90,19 @@ class GeminiClassifier:
                     "temperature": 0,
                 },
             )
-            raw_items = json.loads(resp.text)
         except Exception as exc:  # provider errors vary; quota is the only one that stops the run
             if _is_quota_error(exc):
                 raise QuotaExceeded(str(exc)) from exc
             log.warning("Gemini call failed for %d item(s): %s", len(items), exc)
-            return {}, wanted
+            return {}, wanted, True
+        try:
+            raw_items = json.loads(resp.text)
+        except (TypeError, ValueError):
+            log.warning("Gemini returned unparsable JSON for %d item(s)", len(items))
+            return {}, wanted, False
         parsed = [_parse_item(r) for r in raw_items] if isinstance(raw_items, list) else []
         results = {p.rcept_no: p for p in parsed if p is not None and p.rcept_no in wanted}
-        return results, [r for r in wanted if r not in results]
+        return results, [r for r in wanted if r not in results], False
 
     def _wait_for_rate_limit(self) -> None:
         gap = 60.0 / config.REQUESTS_PER_MINUTE

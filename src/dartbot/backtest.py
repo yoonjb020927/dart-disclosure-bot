@@ -72,12 +72,12 @@ def latest_by_rcept(classifications: list[Classification]) -> dict[str, Classifi
 
 
 def run_backtest(root: Path) -> list[EventResult]:
-    latest = latest_by_rcept(storage.load_classifications(root))
+    eventful = {c.rcept_no for c in storage.load_classifications(root) if c.type != "기타"}
     days = prices.trading_days(root)
     events = [
         compute_event(d, root, days)
         for d in storage.load_disclosures(root)
-        if not d.is_correction and d.rcept_no in latest and latest[d.rcept_no].type != "기타"
+        if not d.is_correction and d.rcept_no in eventful
     ]
     path = root / EVENTS_FILE
     path.parent.mkdir(parents=True, exist_ok=True)

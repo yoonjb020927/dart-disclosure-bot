@@ -5,6 +5,7 @@ close-to-close, so ex-rights days (무상증자, splits) don't create fake jumps
 """
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
@@ -13,6 +14,8 @@ from typing import Protocol
 import pandas as pd
 
 from . import config
+
+log = logging.getLogger(__name__)
 
 STOCK_KINDS = {"stk": "Y", "ksq": "K"}
 
@@ -45,6 +48,8 @@ def _stock_frame(kind_rows: dict[str, list[dict]], d: str) -> pd.DataFrame:
     for kind, market in STOCK_KINDS.items():
         for r in kind_rows[kind]:
             fluc = _num(r.get(f["fluc"]))
+            if _num(r.get(f["volume"])) == 0:  # halted: KRX lists it with FLUC_RT 0.00
+                fluc = None
             records.append(
                 {
                     "date": d,
@@ -84,7 +89,11 @@ def download_day(client: RowSource, d: str, root: Path) -> bool:
     kind_rows = {kind: client.fetch(kind, d) for kind in config.KRX_ENDPOINTS}
     if not any(kind_rows.values()):
         return False
-    for path, frame in ((stock_path, _stock_frame(kind_rows, d)), (index_path, _index_frame(kind_rows, d))):
+    stocks, index = _stock_frame(kind_rows, d), _index_frame(kind_rows, d)
+    if stocks.empty or len(index) < len(config.KRX_INDEX_NAMES):
+        log.warning("KRX %s incomplete (stocks=%d, index=%d); not saved, will retry", d, len(stocks), len(index))
+        return False
+    for path, frame in ((stock_path, stocks), (index_path, index)):
         path.parent.mkdir(parents=True, exist_ok=True)
         frame.to_csv(path, index=False, compression="gzip")
     return True
@@ -98,9 +107,11 @@ def download_range(client: RowSource, start: str, end: str, root: Path) -> int:
     saved = 0
     while current <= last:
         d = current.strftime(fmt)
-        if current.weekday() < 5 and not _stock_path(root, d).exists():
+        if current.weekday() < 5 and not (_stock_path(root, d).exists() and _index_path(root, d).exists()):
             saved += int(download_day(client, d, root))
         current += timedelta(days=1)
+    _stock_day.cache_clear()
+    _index_day.cache_clear()
     return saved
 
 

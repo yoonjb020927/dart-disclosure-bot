@@ -58,7 +58,7 @@ def test_ret_uses_fluc_rt_not_close_diff(tmp_path):
 
 
 def test_index_rows_filtered_to_kospi_kosdaq(tmp_path):
-    prices.download_day(FakeKrx({"20261120": day(kospi=-1.5, kosdaq=0.5)}), "20261120", tmp_path)
+    prices.download_day(FakeKrx({"20261120": day(stk=[stock_row("005930", "71,000", "1.00")], kospi=-1.5, kosdaq=0.5)}), "20261120", tmp_path)
     assert prices.market_returns(tmp_path, "Y", ["20261120"]) == [pytest.approx(-0.015)]
     assert prices.market_returns(tmp_path, "K", ["20261120"]) == [pytest.approx(0.005)]
 
@@ -83,3 +83,25 @@ def test_trading_days_sorted(tmp_path):
     krx = FakeKrx({d: day(stk=[stock_row("005930", "1", "0")]) for d in ("20261123", "20261120")})
     prices.download_range(krx, "20261120", "20261123", tmp_path)
     assert prices.trading_days(tmp_path) == ["20261120", "20261123"]
+
+
+def test_zero_volume_halted_stock_has_no_return(tmp_path):
+    halted = {**stock_row("000300", "4,200", "0.00"), "ACC_TRDVOL": "0"}
+    traded = {**stock_row("005930", "71,000", "1.00"), "ACC_TRDVOL": "1,234"}
+    prices.download_day(FakeKrx({"20261120": day(stk=[halted, traded])}), "20261120", tmp_path)
+    assert prices.stock_returns(tmp_path, "000300", ["20261120"]) == [None]
+    assert prices.stock_returns(tmp_path, "005930", ["20261120"]) == [pytest.approx(0.01)]
+
+
+def test_partial_day_without_index_writes_nothing(tmp_path):
+    partial = {**day(stk=[stock_row("005930", "71,000", "1.00")]), "kosdaq_idx": []}
+    assert prices.download_day(FakeKrx({"20261120": partial}), "20261120", tmp_path) is False
+    assert prices.trading_days(tmp_path) == []
+
+
+def test_download_range_repairs_missing_index_file(tmp_path):
+    krx = FakeKrx({"20261120": day(stk=[stock_row("005930", "71,000", "1.00")])})
+    prices.download_day(krx, "20261120", tmp_path)
+    (tmp_path / "prices" / "index" / "2026" / "20261120.csv.gz").unlink()
+    prices.download_range(krx, "20261120", "20261120", tmp_path)
+    assert (tmp_path / "prices" / "index" / "2026" / "20261120.csv.gz").exists()
