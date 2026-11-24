@@ -3,7 +3,7 @@
 매일 아침 전날 나온 DART 주요 공시를 받아서 **Gemini가 요약하고 유형·영향(긍정/부정/중립)으로 분류**합니다.
 그다음 **공시 후 실제 주가 반응으로 그 분류가 맞았는지 채점**합니다. 전 과정이 GitHub Actions에서 사람 손 없이 돌아가고, 결과는 대시보드로 공개됩니다.
 
-- 대시보드: `https://<github-id>.github.io/<repo>/` (배포 후 링크로 바꾸기)
+- 대시보드: https://yoonjb020927.github.io/dart-disclosure-bot/
 - 만든 이유: "LLM이 공시를 읽고 주가 방향을 맞힐 수 있는가?"를 숫자로 검증해 보기 위해서입니다.
 
 ## 핵심 결과
@@ -83,7 +83,7 @@ python -m http.server -d site      # 대시보드 미리보기
 3. Settings → Pages → Source를 **GitHub Actions**로 설정합니다.
 4. Actions → **backfill**을 3개월씩 4번 실행합니다. OpenDART 일일 한도 때문에 나눠서 실행합니다.
    `20251124–20260223`, `20260224–20260523`, `20260524–20260823`, `20260824–20261123`
-5. `src/dartbot/config.py`의 `LIVE_START_DATE`를 운영 시작일로 바꾸고 커밋합니다.
+5. `src/dartbot/config.py`의 `LIVE_START_DATE`는 운영 시작일(2026-11-24)로 설정되어 있습니다.
 6. 이후 **daily**가 매일 07:00 KST에 돌면서 새 공시를 수집하고, 남은 대기열을 하루 한도만큼 분류하고, 대시보드를 갱신합니다. 실패하면 Issue가 자동으로 생깁니다.
 
 ## 향후 계획

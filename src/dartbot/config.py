@@ -87,7 +87,7 @@ BODY_MAX_CHARS = 4000
 # --- 운영 -------------------------------------------------------------------------
 # Day the scheduled daily run was switched on. Disclosures on/after it are "live".
 # Placeholder until go-live (README: 운영 시작).
-LIVE_START_DATE = "99991231"
+LIVE_START_DATE = "20261124"  # go-live: filings from this date are classified before outcomes exist
 BACKFILL_START = "20251124"
 DATA_DIR = Path("data")
 SITE_DIR = Path("site")
