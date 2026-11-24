@@ -363,3 +363,5 @@
 {"kind": "collect", "date": "20261121", "fetched": 0, "listed": 0, "candidates": 0, "new": 0}
 {"kind": "collect", "date": "20261122", "fetched": 0, "listed": 0, "candidates": 0, "new": 0}
 {"kind": "collect", "date": "20261123", "fetched": 183, "listed": 183, "candidates": 27, "new": 183}
+{"kind": "collect", "date": "20261123", "fetched": 183, "listed": 183, "candidates": 27, "new": 0}
+{"kind": "run", "at": "2026-11-24T19:42:53.291571+09:00", "start": "20261123", "end": "20261123", "classified": 40, "failed": 50, "remaining": 10970, "stopped_by_quota": false}
