@@ -2,8 +2,9 @@ name: daily
 
 on:
   schedule:
-    # 07:00 KST every day (cron is UTC). Missed days are caught up on the next run.
-    - cron: "0 22 * * *"
+    # 06:17 KST every day (cron is UTC). Off the hour: top-of-hour schedules get delayed or dropped.
+    # Missed days are caught up on the next run.
+    - cron: "17 21 * * *"
   workflow_dispatch:
     inputs:
       date:
