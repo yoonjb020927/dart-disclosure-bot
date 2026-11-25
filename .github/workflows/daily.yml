@@ -25,9 +25,8 @@ jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+    outputs:
+      status: ${{ steps.run.outputs.status }}
     steps:
       # a run queued behind another must start from the data that run pushed, not the trigger SHA
       - uses: actions/checkout@v4
@@ -88,14 +87,10 @@ jobs:
           git pull --rebase origin main
           git push
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: steps.run.outputs.status == 'ok'
         with:
           path: site
-
-      - id: deploy
-        if: steps.run.outputs.status == 'ok'
-        uses: actions/deploy-pages@v4
 
       - name: Open an Issue when something breaks
         if: failure() || cancelled()
@@ -106,3 +101,16 @@ jobs:
           printf '## daily 실행 실패\n\n실행 로그: %s\n' "$RUN_URL" > body.md
           gh label create dartbot-failure --color D93F0B --force
           gh issue create --title "⚠️ dartbot 실패 $(date -u +%F)" --body-file body.md --label dartbot-failure
+
+  # A separate job: deploy-pages in the same job as the upload often finds no artifact
+  # (actions/deploy-pages#451). A deploy failure here never touches the committed data.
+  deploy:
+    needs: run
+    if: needs.run.outputs.status == 'ok'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v5
