@@ -1,19 +1,19 @@
 {
- "generated_at": "2026-11-24T19:48:54.028891+09:00",
+ "generated_at": "2026-11-25T11:01:54.083202+09:00",
  "groups": [
   {
    "origin": "backfill",
    "classifier_version": "gemini-3.5-flash+p1",
    "n_classified": 70,
-   "n_ok": 42,
-   "n_pending": 27,
+   "n_ok": 69,
+   "n_pending": 0,
    "n_no_price": 1,
    "by_sentiment": {
     "긍정": {
      "1": {
-      "mean": 0.03271470588235294,
-      "n": 34,
-      "p_value": 0.014762451537551981,
+      "mean": 0.012513461538461536,
+      "n": 52,
+      "p_value": 0.26797863402914623,
       "insufficient": false
      },
      "5": {
@@ -31,9 +31,9 @@
     },
     "부정": {
      "1": {
-      "mean": 0.10104999999999999,
-      "n": 2,
-      "p_value": 0.5406364877463756,
+      "mean": 0.06105,
+      "n": 4,
+      "p_value": 0.7023275637092706,
       "insufficient": true
      },
      "5": {
@@ -51,9 +51,9 @@
     },
     "중립": {
      "1": {
-      "mean": 0.03676666666666666,
-      "n": 6,
-      "p_value": 0.2369685203956811,
+      "mean": 0.003853846153846152,
+      "n": 13,
+      "p_value": 0.8104620825355717,
       "insufficient": true
      },
      "5": {
@@ -72,76 +72,343 @@
    },
    "by_type": {
     "유상증자": {
-     "n": 6,
-     "mean_car1": 0.006249999999999994,
-     "hit_rate": 0.5,
+     "n": 10,
+     "mean_car1": 0.02472,
+     "hit_rate": 0.3,
      "insufficient": true
     },
     "자기주식 취득": {
-     "n": 2,
-     "mean_car1": 0.1404,
-     "hit_rate": 1.0,
+     "n": 7,
+     "mean_car1": 0.06407142857142857,
+     "hit_rate": 0.8571428571428571,
      "insufficient": true
     },
     "자기주식 처분": {
-     "n": 1,
-     "mean_car1": 0.024599999999999997,
+     "n": 3,
+     "mean_car1": -0.0289,
      "hit_rate": 0.0,
      "insufficient": true
     },
     "자기주식 소각": {
-     "n": 4,
-     "mean_car1": 0.048575,
-     "hit_rate": 0.75,
+     "n": 6,
+     "mean_car1": 0.03386666666666666,
+     "hit_rate": 0.5,
      "insufficient": true
     },
     "단일판매·공급계약": {
-     "n": 26,
-     "mean_car1": 0.0223,
-     "hit_rate": 0.6153846153846154,
-     "insufficient": true
+     "n": 33,
+     "mean_car1": 0.01367272727272727,
+     "hit_rate": 0.48484848484848486,
+     "insufficient": false
     },
     "최대주주 변경": {
-     "n": 2,
-     "mean_car1": 0.19255,
-     "hit_rate": 0.0,
+     "n": 4,
+     "mean_car1": -0.059025,
+     "hit_rate": 0.25,
      "insufficient": true
     },
     "합병·분할": {
+     "n": 5,
+     "mean_car1": -8.000000000000368e-05,
+     "hit_rate": 0.6,
+     "insufficient": true
+    },
+    "영업(잠정)실적": {
      "n": 1,
-     "mean_car1": 0.0329,
-     "hit_rate": 1.0,
+     "mean_car1": -0.0819,
+     "hit_rate": 0.0,
      "insufficient": true
     }
    },
    "confusion": {
     "긍정": {
-     "긍정": 22,
-     "부정": 6,
-     "중립": 6
+     "긍정": 26,
+     "부정": 16,
+     "중립": 10
     },
     "부정": {
-     "긍정": 1,
-     "부정": 1,
+     "긍정": 2,
+     "부정": 2,
      "중립": 0
     },
     "중립": {
      "긍정": 3,
-     "부정": 1,
-     "중립": 2
+     "부정": 6,
+     "중립": 4
     }
    },
-   "directional_hit_rate": 0.8055555555555556,
+   "directional_hit_rate": 0.6785714285714286,
    "hit_rate_by_threshold": {
-    "0.005": 0.5952380952380952,
-    "0.01": 0.5952380952380952,
-    "0.02": 0.5
+    "0.005": 0.463768115942029,
+    "0.01": 0.463768115942029,
+    "0.02": 0.391304347826087
    },
    "hit_rate_by_confidence": {
     "0.0-0.5": null,
     "0.5-0.7": null,
-    "0.7-0.9": 0.5,
-    "0.9-1.0": 0.7
+    "0.7-0.9": 0.3783783783783784,
+    "0.9-1.0": 0.5625
+   }
+  },
+  {
+   "origin": "backfill",
+   "classifier_version": "gemini-3.5-flash-lite+p1",
+   "n_classified": 2675,
+   "n_ok": 2601,
+   "n_pending": 0,
+   "n_no_price": 74,
+   "by_sentiment": {
+    "긍정": {
+     "1": {
+      "mean": 0.026681196581196578,
+      "n": 1521,
+      "p_value": 1.4142529640210221e-31,
+      "insufficient": false
+     },
+     "5": {
+      "mean": 0.030731404958677686,
+      "n": 1452,
+      "p_value": 7.89773200629959e-22,
+      "insufficient": false
+     },
+     "20": {
+      "mean": 0.03932565922920893,
+      "n": 986,
+      "p_value": 9.400936077167936e-12,
+      "insufficient": false
+     }
+    },
+    "부정": {
+     "1": {
+      "mean": -0.004094146341463415,
+      "n": 410,
+      "p_value": 0.451692007524361,
+      "insufficient": false
+     },
+     "5": {
+      "mean": -0.0067205513784461155,
+      "n": 399,
+      "p_value": 0.3633708269477142,
+      "insufficient": false
+     },
+     "20": {
+      "mean": -0.011132195121951216,
+      "n": 205,
+      "p_value": 0.4273855523283292,
+      "insufficient": false
+     }
+    },
+    "중립": {
+     "1": {
+      "mean": 0.0037859701492537314,
+      "n": 670,
+      "p_value": 0.3014544018472474,
+      "insufficient": false
+     },
+     "5": {
+      "mean": 0.008830926216640504,
+      "n": 637,
+      "p_value": 0.07459953330681879,
+      "insufficient": false
+     },
+     "20": {
+      "mean": 0.0057049019607843185,
+      "n": 408,
+      "p_value": 0.47749350309259697,
+      "insufficient": false
+     }
+    }
+   },
+   "by_type": {
+    "유상증자": {
+     "n": 212,
+     "mean_car1": 0.042213207547169805,
+     "hit_rate": 0.27358490566037735,
+     "insufficient": false
+    },
+    "무상증자": {
+     "n": 9,
+     "mean_car1": 0.15339999999999998,
+     "hit_rate": 0.8888888888888888,
+     "insufficient": true
+    },
+    "자기주식 취득": {
+     "n": 224,
+     "mean_car1": 0.07577857142857143,
+     "hit_rate": 0.75,
+     "insufficient": false
+    },
+    "자기주식 처분": {
+     "n": 72,
+     "mean_car1": 0.007713888888888889,
+     "hit_rate": 0.19444444444444445,
+     "insufficient": false
+    },
+    "자기주식 소각": {
+     "n": 244,
+     "mean_car1": 0.018721311475409837,
+     "hit_rate": 0.4918032786885246,
+     "insufficient": false
+    },
+    "단일판매·공급계약": {
+     "n": 641,
+     "mean_car1": 0.013858970358814351,
+     "hit_rate": 0.46021840873634945,
+     "insufficient": false
+    },
+    "최대주주 변경": {
+     "n": 112,
+     "mean_car1": 0.012244642857142855,
+     "hit_rate": 0.20535714285714285,
+     "insufficient": false
+    },
+    "전환사채·신주인수권부사채 발행": {
+     "n": 112,
+     "mean_car1": 0.0015883928571428574,
+     "hit_rate": 0.4375,
+     "insufficient": false
+    },
+    "합병·분할": {
+     "n": 83,
+     "mean_car1": 0.016762650602409637,
+     "hit_rate": 0.30120481927710846,
+     "insufficient": false
+    },
+    "영업(잠정)실적": {
+     "n": 892,
+     "mean_car1": -0.003152130044843049,
+     "hit_rate": 0.40582959641255606,
+     "insufficient": false
+    }
+   },
+   "confusion": {
+    "긍정": {
+     "긍정": 816,
+     "부정": 493,
+     "중립": 212
+    },
+    "부정": {
+     "긍정": 160,
+     "부정": 205,
+     "중립": 45
+    },
+    "중립": {
+     "긍정": 264,
+     "부정": 305,
+     "중립": 101
+    }
+   },
+   "directional_hit_rate": 0.6007250129466598,
+   "hit_rate_by_threshold": {
+    "0.005": 0.4398308342945021,
+    "0.01": 0.43137254901960786,
+    "0.02": 0.42483660130718953
+   },
+   "hit_rate_by_confidence": {
+    "0.0-0.5": null,
+    "0.5-0.7": 0.1417004048582996,
+    "0.7-0.9": 0.40644361833952913,
+    "0.9-1.0": 0.5824324324324325
+   }
+  },
+  {
+   "origin": "live",
+   "classifier_version": "gemini-3.5-flash-lite+p1",
+   "n_classified": 36,
+   "n_ok": 0,
+   "n_pending": 36,
+   "n_no_price": 0,
+   "by_sentiment": {
+    "긍정": {
+     "1": {
+      "mean": null,
+      "n": 0,
+      "p_value": null,
+      "insufficient": true
+     },
+     "5": {
+      "mean": null,
+      "n": 0,
+      "p_value": null,
+      "insufficient": true
+     },
+     "20": {
+      "mean": null,
+      "n": 0,
+      "p_value": null,
+      "insufficient": true
+     }
+    },
+    "부정": {
+     "1": {
+      "mean": null,
+      "n": 0,
+      "p_value": null,
+      "insufficient": true
+     },
+     "5": {
+      "mean": null,
+      "n": 0,
+      "p_value": null,
+      "insufficient": true
+     },
+     "20": {
+      "mean": null,
+      "n": 0,
+      "p_value": null,
+      "insufficient": true
+     }
+    },
+    "중립": {
+     "1": {
+      "mean": null,
+      "n": 0,
+      "p_value": null,
+      "insufficient": true
+     },
+     "5": {
+      "mean": null,
+      "n": 0,
+      "p_value": null,
+      "insufficient": true
+     },
+     "20": {
+      "mean": null,
+      "n": 0,
+      "p_value": null,
+      "insufficient": true
+     }
+    }
+   },
+   "by_type": {},
+   "confusion": {
+    "긍정": {
+     "긍정": 0,
+     "부정": 0,
+     "중립": 0
+    },
+    "부정": {
+     "긍정": 0,
+     "부정": 0,
+     "중립": 0
+    },
+    "중립": {
+     "긍정": 0,
+     "부정": 0,
+     "중립": 0
+    }
+   },
+   "directional_hit_rate": null,
+   "hit_rate_by_threshold": {
+    "0.005": null,
+    "0.01": null,
+    "0.02": null
+   },
+   "hit_rate_by_confidence": {
+    "0.0-0.5": null,
+    "0.5-0.7": null,
+    "0.7-0.9": null,
+    "0.9-1.0": null
    }
   }
  ]

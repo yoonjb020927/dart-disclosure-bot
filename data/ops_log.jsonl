@@ -366,3 +366,5 @@
 {"kind": "collect", "date": "20261123", "fetched": 183, "listed": 183, "candidates": 27, "new": 0}
 {"kind": "run", "at": "2026-11-24T19:42:53.291571+09:00", "start": "20261123", "end": "20261123", "classified": 40, "failed": 50, "remaining": 10970, "stopped_by_quota": false}
 {"kind": "run", "at": "2026-11-24T19:48:53.428729+09:00", "start": "20261124", "end": "20261123", "classified": 30, "failed": 0, "remaining": 10940, "stopped_by_quota": true}
+{"kind": "collect", "date": "20261124", "fetched": 172, "listed": 172, "candidates": 36, "new": 172}
+{"kind": "run", "at": "2026-11-25T11:01:52.776491+09:00", "start": "20261124", "end": "20261124", "classified": 1998, "failed": 2, "remaining": 8328, "stopped_by_quota": false, "stopped_by_time": false}
